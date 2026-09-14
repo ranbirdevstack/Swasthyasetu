@@ -162,10 +162,9 @@ export default function CallModal({ roomId, userId, callType = "video", onClose 
     setActiveMode(mode);
   };
 
-  
-const handleEndCall = async () => {
+  const handleEndCall = async () => {
     try {
-      await api.post("/consultations/end-call", {
+      await api.post("/api/consultations/end-call", {
         roomId,
         patientId: userId,
         doctorId: userId,
@@ -175,11 +174,6 @@ const handleEndCall = async () => {
     } catch (err) {
       console.warn("Failed to log session on backend:", err);
     }
-
-    stopMediaTracks();
-    if (onClose) onClose();
-  };
-
 
     stopMediaTracks();
     if (onClose) onClose();
@@ -267,7 +261,7 @@ const handleEndCall = async () => {
       </div>
     </div>
   );
-
+}
 
 const styles = {
   overlay: {
