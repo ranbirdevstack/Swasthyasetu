@@ -1,8 +1,39 @@
-// src/pages/Login.jsx
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import apiClient from "../api/axiosClient.js";
 import ForgotPasswordModal from "../components/ForgotPasswordModal.jsx";
+
+// Initial mock database for offline authentication & testing with updated phone numbers
+const DEFAULT_MOCK_USERS = [
+  {
+    email: "shivam@example.com",
+    phone: "9876543210",
+    password: "password123",
+    role: "patient",
+    name: "Shivam Kumar",
+  },
+  {
+    email: "ravi.worker@swasthyasetu.in",
+    phone: "9876543210",
+    password: "password123",
+    role: "worker",
+    name: "Ravi Kumar (ASHA/ANM)",
+  },
+  {
+    email: "dr.sharma@swasthyasetu.in",
+    phone: "9876543203",
+    password: "password123",
+    role: "doctor",
+    name: "Dr. Alok Sharma",
+  },
+  {
+    email: "admin@swasthyasetu.in",
+    phone: "9876543210",
+    password: "password123",
+    role: "admin",
+    name: "District Admin (Varanasi)",
+  },
+];
 
 function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -25,6 +56,16 @@ function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+
+  // In-memory mock store that supports live password resets
+  const [mockUsers, setMockUsers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("swasthya_mock_users");
+      return saved ? JSON.parse(saved) : DEFAULT_MOCK_USERS;
+    } catch {
+      return DEFAULT_MOCK_USERS;
+    }
+  });
 
   /* =========================
       ROLE LABELS
@@ -52,23 +93,19 @@ function Login({ onLogin }) {
   /* =========================
       PASSWORD RESET HANDLER
   ========================= */
-  const handlePasswordResetSuccess = async (newPassword) => {
-    try {
-      const cleanId = identifier.trim().toLowerCase();
-      const isEmail = cleanId.includes("@");
-      await apiClient.post("/auth/reset-password", {
-        identifier: cleanId,
-        email: isEmail ? cleanId : "",
-        phone: !isEmail ? cleanId : "",
-        newPassword,
-        role,
-      });
-      setPassword(newPassword);
-      setErrorMsg("");
-      alert("Password updated successfully in database.");
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Failed to reset password.");
-    }
+  const handlePasswordResetSuccess = (newPassword) => {
+    const cleanId = identifier.trim().toLowerCase();
+    const updatedUsers = mockUsers.map((u) => {
+      if (cleanId && (u.email.toLowerCase() === cleanId || u.phone === cleanId || cleanId.includes(u.role))) {
+        return { ...u, password: newPassword };
+      }
+      return u;
+    });
+
+    setMockUsers(updatedUsers);
+    localStorage.setItem("swasthya_mock_users", JSON.stringify(updatedUsers));
+    setPassword(newPassword);
+    setErrorMsg("");
   };
 
   /* =========================
@@ -98,35 +135,75 @@ function Login({ onLogin }) {
 
     const cleanIdentifier = identifier.trim().toLowerCase();
     const cleanPassword = password.trim();
-    const isEmail = cleanIdentifier.includes("@");
 
-    try {
-      const response = await apiClient.post("/auth/login", {
-        identifier: cleanIdentifier,
-        email: isEmail ? cleanIdentifier : "",
-        phone: !isEmail ? cleanIdentifier : "",
-        password: cleanPassword,
-        role,
-      });
+    // 1. Check in local Mock Directory (matching either email or phone)
+    const matchedUser = mockUsers.find(
+      (u) => u.email.toLowerCase() === cleanIdentifier || u.phone === cleanIdentifier
+    );
 
-      const { token, user } = response.data;
-      if (token) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("swasthya_user", JSON.stringify(user));
-        localStorage.setItem("swasthya_role", user?.role || role);
-        localStorage.setItem("userRole", user?.role || role);
-        localStorage.setItem("userName", user?.name || cleanIdentifier);
+    if (!matchedUser) {
+      // Try online API if available
+      try {
+        const response = await apiClient.post("/auth/login", {
+          identifier: cleanIdentifier,
+          password: cleanPassword,
+          role,
+        });
+
+        const { token, user } = response.data;
+        if (token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("swasthya_user", JSON.stringify(user));
+          localStorage.setItem("swasthya_role", user?.role || role);
+        }
+
+        if (onLogin) onLogin(user || { role, name: cleanIdentifier });
+        window.dispatchEvent(new Event("swasthya_role_updated"));
+        navigate(redirectMap[role] || "/roles");
+        return;
+      } catch (err) {
+        setErrorMsg("Incorrect username or password");
+        setLoading(false);
+        return;
       }
+    }
 
-      if (onLogin) onLogin(user || { role, name: cleanIdentifier });
-      window.dispatchEvent(new Event("swasthya_role_updated"));
+    // 2. Validate Password
+    if (matchedUser.password !== cleanPassword) {
+      setErrorMsg("Incorrect username or password");
+      setLoading(false);
+      return;
+    }
 
+    // 3. Validate Role match
+    if (matchedUser.role !== role) {
+      setErrorMsg("Incorrect username or password");
+      setLoading(false);
+      return;
+    }
+
+    // 4. Successful Offline/Demo Authentication
+    const sessionUser = {
+      email: matchedUser.email,
+      phone: matchedUser.phone,
+      name: matchedUser.name,
+      role: matchedUser.role,
+      token: "demo-jwt-token-" + Date.now(),
+    };
+
+    localStorage.setItem("token", sessionUser.token);
+    localStorage.setItem("swasthya_user", JSON.stringify(sessionUser));
+    localStorage.setItem("swasthya_role", sessionUser.role);
+    localStorage.setItem("userRole", sessionUser.role);
+    localStorage.setItem("userName", sessionUser.name);
+
+    if (onLogin) onLogin(sessionUser);
+    window.dispatchEvent(new Event("swasthya_role_updated"));
+
+    setTimeout(() => {
       setLoading(false);
       navigate(redirectMap[role] || "/roles");
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Incorrect username or password");
-      setLoading(false);
-    }
+    }, 350);
   };
 
   return (
