@@ -1,4 +1,3 @@
-// src/pages/DoctorDashboard.jsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient.js";
@@ -34,14 +33,6 @@ function DoctorDashboard() {
 
   const [toast, setToast] = useState("");
 
-  /* =========================
-<<<<<<< HEAD
-     DOCTOR PROFILE
-=======
-     DOCTOR PROFILE (WITH PHONE & PASSWORD)
->>>>>>> d6f0b76 (prototype)
-  ========================= */
-
   const [doctorProfile, setDoctorProfile] = useState({
     id: "",
     name: "Dr. Sharma",
@@ -59,85 +50,6 @@ function DoctorDashboard() {
 
   const [editProfile, setEditProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ ...doctorProfile });
-
-  /* =========================
-     LIVE DATABASE STATES
-  ========================= */
-  const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [referrals, setReferrals] = useState([]);
-  const [followUps, setFollowUps] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-
-  // Load Doctor Profile & Live Data from correct pluralized endpoint `/doctors/dashboard`
-  useEffect(() => {
-<<<<<<< HEAD
-=======
-    const savedUser = localStorage.getItem("swasthya_user");
-    const cachedName = localStorage.getItem("userName");
-
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setDoctorProfile((prev) => ({
-          ...prev,
-          id: parsed.id || parsed._id || prev.id,
-          name: parsed.name || prev.name,
-          email: parsed.email || prev.email,
-          phone: parsed.phone || prev.phone,
-          password: parsed.password || prev.password,
-        }));
-      } catch (err) {
-        console.warn("Failed parsing saved doctor user", err);
-      }
-    } else if (cachedName) {
-      setDoctorProfile((prev) => ({ ...prev, name: cachedName }));
-    }
-
->>>>>>> d6f0b76 (prototype)
-    const fetchDoctorData = async () => {
-      try {
-        const res = await api.get("/doctors/dashboard");
-        if (res.data && res.data.success) {
-          if (res.data.profile) {
-            setDoctorProfile(res.data.profile);
-            setProfileForm(res.data.profile);
-          }
-          if (res.data.appointments) setAppointments(res.data.appointments);
-          if (res.data.patients) setPatients(res.data.patients);
-          if (res.data.referrals) setReferrals(res.data.referrals);
-          if (res.data.followUps) setFollowUps(res.data.followUps);
-          if (res.data.notifications) setNotifications(res.data.notifications);
-        }
-      } catch (err) {
-        console.warn("Failed fetching live database records for doctor dashboard", err);
-      }
-    };
-
-    fetchDoctorData();
-  }, []);
-
-<<<<<<< HEAD
-=======
-  /* =========================
-     SETTINGS STATE
-  ========================= */
-
-  const [settings, setSettings] = useState({
-    appointmentNotifications: true,
-    referralNotifications: true,
-    followUpNotifications: true,
-    emailNotifications: false,
-    smsNotifications: true,
-    onlineConsultation: true,
-    showAvailability: true,
-    twoFactor: false,
-    language: "English",
-  });
-
-  /* =========================
-     DATA STATE
-  ========================= */
 
   const [appointments, setAppointments] = useState([
     {
@@ -192,7 +104,7 @@ function DoctorDashboard() {
     },
   ]);
 
-  const [patients] = useState([
+  const [patients, setPatients] = useState([
     {
       id: 101,
       name: "Rahul Kumar",
@@ -320,23 +232,62 @@ function DoctorDashboard() {
     },
   ]);
 
-  const markAllNotificationsRead = () => {
-    setNotifications((prev) =>
-      prev.map((item) => ({
-        ...item,
-        read: true,
-      }))
-    );
-    showToast("All notifications marked as read.");
-  };
+  useEffect(() => {
+    const savedUser = localStorage.getItem("swasthya_user");
+    const cachedName = localStorage.getItem("userName");
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        setDoctorProfile((prev) => ({
+          ...prev,
+          id: parsed.id || parsed._id || prev.id,
+          name: parsed.name || prev.name,
+          email: parsed.email || prev.email,
+          phone: parsed.phone || prev.phone,
+          password: parsed.password || prev.password,
+        }));
+      } catch (err) {
+        console.warn("Failed parsing saved doctor user", err);
+      }
+    } else if (cachedName) {
+      setDoctorProfile((prev) => ({ ...prev, name: cachedName }));
+    }
 
-  /* =========================
-     COMMON FUNCTIONS
-  ========================= */
+    const fetchDoctorData = async () => {
+      try {
+        const res = await api.get("/doctors/dashboard");
+        if (res.data && res.data.success) {
+          if (res.data.profile) {
+            setDoctorProfile(res.data.profile);
+            setProfileForm(res.data.profile);
+          }
+          if (res.data.appointments) setAppointments(res.data.appointments);
+          if (res.data.patients) setPatients(res.data.patients);
+          if (res.data.referrals) setReferrals(res.data.referrals);
+          if (res.data.followUps) setFollowUps(res.data.followUps);
+          if (res.data.notifications) setNotifications(res.data.notifications);
+        }
+      } catch (err) {
+        console.warn("Failed fetching live database records for doctor dashboard", err);
+      }
+    };
 
->>>>>>> d6f0b76 (prototype)
+    fetchDoctorData();
+  }, []);
+
+  const [settings, setSettings] = useState({
+    appointmentNotifications: true,
+    referralNotifications: true,
+    followUpNotifications: true,
+    emailNotifications: false,
+    smsNotifications: true,
+    onlineConsultation: true,
+    showAvailability: true,
+    twoFactor: false,
+    language: "English",
+  });
+
   const showToast = (message) => {
     setToast(message);
     setTimeout(() => {
@@ -441,15 +392,7 @@ function DoctorDashboard() {
     navigate("/");
   };
 
-<<<<<<< HEAD
   const handleSavePassword = async (e) => {
-=======
-  /* =========================
-     PASSWORD UPDATE HANDLER
-  ========================= */
-
-  const handleSavePassword = (e) => {
->>>>>>> d6f0b76 (prototype)
     e.preventDefault();
     if (!newPasswordInput || newPasswordInput.length < 6) {
       showToast("Password must be at least 6 characters.");
@@ -514,18 +457,6 @@ function DoctorDashboard() {
       [field]: value,
     }));
   };
-
-  const [settings, setSettings] = useState({
-    appointmentNotifications: true,
-    referralNotifications: true,
-    followUpNotifications: true,
-    emailNotifications: false,
-    smsNotifications: true,
-    onlineConsultation: true,
-    showAvailability: true,
-    twoFactor: false,
-    language: "English",
-  });
 
   const updateSetting = (key, value) => {
     setSettings((prev) => ({
@@ -651,10 +582,6 @@ function DoctorDashboard() {
       </div>
     );
   };
-
-  /* =========================
-     DASHBOARD RENDER
-  ========================= */
 
   const renderDashboard = () => (
     <>
@@ -817,13 +744,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     APPOINTMENTS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderAppointments = () => (
     <>
       <PageHeader
@@ -874,9 +794,6 @@ function DoctorDashboard() {
 
               <StatusBadge status={appointment.status} />
 
-<<<<<<< HEAD
-              <div className="appointment-actions" style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-=======
               <div className="appointment-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 {appointment.type === "Video Consultation" && appointment.status !== "Completed" && (
                   <button
@@ -888,7 +805,6 @@ function DoctorDashboard() {
                   </button>
                 )}
 
->>>>>>> d6f0b76 (prototype)
                 {appointment.status !== "Completed" && (
                   <>
                     <button
@@ -922,13 +838,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     PATIENTS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderPatients = () => (
     <>
       <PageHeader
@@ -966,13 +875,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     CONSULTATIONS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderConsultations = () => (
     <>
       <PageHeader
@@ -1058,13 +960,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     REFERRALS RENDER (WITH INTERACTIVE FACILITY MAP TOGGLE)
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderReferrals = () => (
     <>
       <PageHeader
@@ -1161,13 +1056,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     PRESCRIPTIONS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderPrescriptions = () => (
     <>
       <PageHeader
@@ -1194,13 +1082,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     FOLLOW UPS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderFollowUps = () => (
     <>
       <PageHeader
@@ -1238,13 +1119,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     ANALYTICS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderAnalytics = () => (
     <>
       <PageHeader
@@ -1258,13 +1132,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     PROFILE RENDER (WITH PHONE & PASSWORD VISIBILITY)
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderProfile = () => (
     <>
       <PageHeader
@@ -1325,13 +1192,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     EDIT PROFILE FORM
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderEditProfile = () => (
     <div className="doctor-panel edit-profile-panel">
       <div className="edit-profile-heading">
@@ -1375,13 +1235,6 @@ function DoctorDashboard() {
     </div>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     SETTINGS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderSettings = () => (
     <>
       <PageHeader
@@ -1407,13 +1260,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     NOTIFICATIONS RENDER
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderNotifications = () => (
     <>
       <PageHeader
@@ -1442,13 +1288,6 @@ function DoctorDashboard() {
     </>
   );
 
-<<<<<<< HEAD
-=======
-  /* =========================
-     CONTENT SWITCH
-  ========================= */
-
->>>>>>> d6f0b76 (prototype)
   const renderContent = () => {
     switch (activeMenu) {
       case "Dashboard": return renderDashboard();
@@ -1539,9 +1378,6 @@ function DoctorDashboard() {
         <section className="doctor-content">{renderContent()}</section>
       </main>
 
-<<<<<<< HEAD
-=======
-      {/* APPOINTMENT MODAL */}
       {selectedAppointment && (
         <Modal
           title="Appointment Details"
@@ -1606,7 +1442,6 @@ function DoctorDashboard() {
         </Modal>
       )}
 
-      {/* PATIENT DETAILS MODAL */}
       {showPatientDetails && selectedPatient && (
         <Modal
           title="Patient Details"
@@ -1671,7 +1506,6 @@ function DoctorDashboard() {
         </Modal>
       )}
 
-      {/* PRESCRIPTION MODAL */}
       {showPrescription && (
         <Modal
           title="Create Prescription"
@@ -1738,7 +1572,6 @@ function DoctorDashboard() {
         </Modal>
       )}
 
-      {/* REFERRAL MODAL */}
       {showReferral && (
         <Modal
           title="Create New Referral"
@@ -1791,8 +1624,6 @@ function DoctorDashboard() {
         </Modal>
       )}
 
->>>>>>> d6f0b76 (prototype)
-      {/* CHANGE PASSWORD MODAL */}
       {showPasswordModal && (
         <Modal title="Change Doctor Password" onClose={() => setShowPasswordModal(false)}>
           <form onSubmit={handleSavePassword}>
@@ -1815,10 +1646,6 @@ function DoctorDashboard() {
         </Modal>
       )}
 
-<<<<<<< HEAD
-      {toast && <div className="doctor-toast"><span>✓</span>{toast}</div>}
-=======
-      {/* TELEHEALTH CALL MODAL */}
       {activeCallAppointment && (
         <CallModal 
           roomId={activeCallAppointment._id || activeCallAppointment.id || "doctor-telehealth-room"} 
@@ -1828,19 +1655,16 @@ function DoctorDashboard() {
         />
       )}
 
-      {/* TOAST */}
       {toast && (
         <div className="doctor-toast">
           <span>✓</span>
           {toast}
         </div>
       )}
->>>>>>> d6f0b76 (prototype)
     </div>
   );
 }
 
-// Sub-components
 function PageHeader({ title, subtitle, action }) {
   return (
     <div className="doctor-page-header">

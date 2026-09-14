@@ -9,36 +9,20 @@ import "./PatientDashboard.css";
 function PatientDashboard() {
   const navigate = useNavigate();
 
-  // =========================================================
-  // BASIC UI STATE
-  // =========================================================
-
   const [activeMenu, setActiveMenu] = useState("Dashboard");
   const [showProfile, setShowProfile] = useState(false);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [menuHistory, setMenuHistory] = useState([]);
 
-  // =========================================================
-  // FACILITY & MAP STATE
-  // =========================================================
-
   const [facilitySearch, setFacilitySearch] = useState("");
   const [facilityFilter, setFacilityFilter] = useState("All Facilities");
-  const [facilityViewMode, setFacilityViewMode] = useState("grid"); // 'grid' | 'map'
+  const [facilityViewMode, setFacilityViewMode] = useState("grid");
   const [selectedFacility, setSelectedFacility] = useState(null);
-
-  // =========================================================
-  // SMART RECOMMENDATION
-  // =========================================================
 
   const [recommendationType, setRecommendationType] = useState("General");
   const [recommendationLocation, setRecommendationLocation] = useState("Choubeypur");
   const [selectedPreferences, setSelectedPreferences] = useState(["Nearby"]);
   const [hasRecommended, setHasRecommended] = useState(false);
-
-  // =========================================================
-  // TRIAGE
-  // =========================================================
 
   const [triageSymptoms, setTriageSymptoms] = useState([]);
   const [triageSeverity, setTriageSeverity] = useState("");
@@ -48,10 +32,6 @@ function PatientDashboard() {
   const [triageOther, setTriageOther] = useState("");
   const [triageResult, setTriageResult] = useState(null);
   const [triageHistory, setTriageHistory] = useState([]);
-
-  // =========================================================
-  // APPOINTMENTS & TELEHEALTH CONSULTATIONS
-  // =========================================================
 
   const [appointments, setAppointments] = useState([
     {
@@ -86,10 +66,6 @@ function PatientDashboard() {
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [activeCallAppointment, setActiveCallAppointment] = useState(null);
 
-  // =========================================================
-  // REFERRALS
-  // =========================================================
-
   const [referrals] = useState([
     {
       id: 1,
@@ -112,10 +88,6 @@ function PatientDashboard() {
       progress: 50,
     },
   ]);
-
-  // =========================================================
-  // MEDICINES
-  // =========================================================
 
   const [medicineSearch, setMedicineSearch] = useState("");
   const [medicineFilter, setMedicineFilter] = useState("All");
@@ -163,10 +135,6 @@ function PatientDashboard() {
     },
   ];
 
-  // =========================================================
-  // DIAGNOSTICS
-  // =========================================================
-
   const [diagnosticTests, setDiagnosticTests] = useState([
     {
       id: 1,
@@ -203,10 +171,6 @@ function PatientDashboard() {
     date: "",
   });
 
-  // =========================================================
-  // FOLLOW UP
-  // =========================================================
-
   const [followUps, setFollowUps] = useState([
     {
       id: 1,
@@ -229,10 +193,6 @@ function PatientDashboard() {
       reminder: false,
     },
   ]);
-
-  // =========================================================
-  // NOTIFICATIONS
-  // =========================================================
 
   const [notifications, setNotifications] = useState([
     {
@@ -261,10 +221,6 @@ function PatientDashboard() {
     },
   ]);
 
-  // =========================================================
-  // PROFILE & PASSWORD STATE
-  // =========================================================
-
   const [profile, setProfile] = useState({
     id: "",
     name: "Shivam",
@@ -282,7 +238,6 @@ function PatientDashboard() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordToast, setPasswordToast] = useState("");
 
-  // Load real patient profile & sync with backend/local registration
   useEffect(() => {
     const savedUser =
       localStorage.getItem("swasthya_user") ||
@@ -315,9 +270,7 @@ function PatientDashboard() {
           if (res.data.profile) setProfile(res.data.profile);
           if (res.data.appointments) setAppointments(res.data.appointments);
         }
-      } catch {
-        // Backend unavailable, runs smoothly in local/demo mode
-      }
+      } catch {}
     };
 
     fetchPatientData();
@@ -360,20 +313,12 @@ function PatientDashboard() {
     setTimeout(() => setPasswordToast(""), 3000);
   };
 
-  // =========================================================
-  // SETTINGS
-  // =========================================================
-
   const [settings, setSettings] = useState({
     appointmentReminder: true,
     referralUpdates: true,
     medicineUpdates: true,
     language: "English",
   });
-
-  // =========================================================
-  // MENU
-  // =========================================================
 
   const menuItems = [
     { name: "Dashboard", icon: "⌂" },
@@ -387,10 +332,6 @@ function PatientDashboard() {
     { name: "Follow-up", icon: "♥" },
     { name: "Care Journey", icon: "◈" },
   ];
-
-  // =========================================================
-  // FACILITIES
-  // =========================================================
 
   const facilities = [
     {
@@ -527,10 +468,6 @@ function PatientDashboard() {
     },
   ];
 
-  // =========================================================
-  // FACILITY FILTER
-  // =========================================================
-
   const filteredFacilities = facilities.filter((facility) => {
     const search = facilitySearch.trim().toLowerCase();
 
@@ -551,10 +488,6 @@ function PatientDashboard() {
 
     return matchesSearch && matchesFilter;
   });
-
-  // =========================================================
-  // RECOMMENDATION
-  // =========================================================
 
   const getRecommendationScore = (facility) => {
     let score = 40;
@@ -637,10 +570,6 @@ function PatientDashboard() {
       .sort((a, b) => b.recommendationScore - a.recommendationScore)
       .slice(0, 3);
   }, [recommendationType, recommendationLocation, selectedPreferences]);
-
-  // =========================================================
-  // TRIAGE
-  // =========================================================
 
   const symptomOptions = [
     { id: "fever", label: "Fever", icon: "🌡" },
@@ -804,10 +733,6 @@ function PatientDashboard() {
     setTriageResult(null);
   };
 
-  // =========================================================
-  // COMMON FUNCTIONS
-  // =========================================================
-
   const handleMenuClick = (menuName) => {
     if (menuName !== activeMenu) {
       setMenuHistory((current) => [...current, activeMenu]);
@@ -877,10 +802,6 @@ function PatientDashboard() {
     );
   };
 
-  // =========================================================
-  // APPOINTMENT FUNCTIONS
-  // =========================================================
-
   const bookAppointment = async () => {
     if (
       !appointmentForm.facility ||
@@ -926,10 +847,6 @@ function PatientDashboard() {
     );
   };
 
-  // =========================================================
-  // MEDICINE FILTER
-  // =========================================================
-
   const filteredMedicines = medicines.filter((medicine) => {
     const search = medicineSearch.toLowerCase();
     const matchesSearch =
@@ -942,10 +859,6 @@ function PatientDashboard() {
 
     return matchesSearch && matchesFilter;
   });
-
-  // =========================================================
-  // DIAGNOSTIC BOOKING
-  // =========================================================
 
   const bookDiagnostic = () => {
     if (
@@ -977,10 +890,6 @@ function PatientDashboard() {
     });
   };
 
-  // =========================================================
-  // NOTIFICATIONS
-  // =========================================================
-
   const unreadCount = notifications.filter((item) => !item.read).length;
 
   const markNotificationRead = (id) => {
@@ -1000,10 +909,6 @@ function PatientDashboard() {
     );
   };
 
-  // =========================================================
-  // FOLLOW-UP
-  // =========================================================
-
   const toggleReminder = (id) => {
     setFollowUps((current) =>
       current.map((item) =>
@@ -1011,10 +916,6 @@ function PatientDashboard() {
       )
     );
   };
-
-  // =========================================================
-  // RENDER HELPERS
-  // =========================================================
 
   const PageHeader = ({ eyebrow, title, description, icon }) => (
     <div className="module-page-header">
@@ -1040,7 +941,6 @@ function PatientDashboard() {
 
   return (
     <div className="patient-dashboard">
-      {/* MOBILE OVERLAY */}
       {mobileSidebar && (
         <div
           className="sidebar-overlay"
@@ -1048,7 +948,6 @@ function PatientDashboard() {
         />
       )}
 
-      {/* SIDEBAR */}
       <aside className={`patient-sidebar ${mobileSidebar ? "mobile-sidebar-open" : ""}`}>
         <button
           className="mobile-sidebar-close"
@@ -1115,9 +1014,7 @@ function PatientDashboard() {
         </div>
       </aside>
 
-      {/* MAIN */}
       <div className="dashboard-main">
-        {/* TOPBAR */}
         <header className="dashboard-topbar">
           <div className="topbar-left">
             <button
@@ -1217,9 +1114,7 @@ function PatientDashboard() {
           </div>
         </header>
 
-        {/* CONTENT */}
         <main className="dashboard-content">
-          {/* TOAST MESSAGE */}
           {passwordToast && (
             <div
               style={{
@@ -1240,9 +1135,6 @@ function PatientDashboard() {
             </div>
           )}
 
-          {/* ===================================================
-              DASHBOARD
-          =================================================== */}
           {activeMenu === "Dashboard" && (
             <>
               <section className="welcome-banner">
@@ -1528,9 +1420,6 @@ function PatientDashboard() {
             </>
           )}
 
-          {/* ===================================================
-              FIND FACILITY
-          =================================================== */}
           {activeMenu === "Find Facility" && (
             <section className="module-page">
               <PageHeader
@@ -1715,9 +1604,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              SMART RECOMMENDATION
-          =================================================== */}
           {activeMenu === "Smart Recommendation" && (
             <section className="module-page">
               <PageHeader
@@ -1908,9 +1794,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              DIGITAL TRIAGE
-          =================================================== */}
           {activeMenu === "Digital Triage" && (
             <section className="module-page">
               <PageHeader
@@ -2169,9 +2052,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              APPOINTMENTS & TELEHEALTH CONSULTATIONS
-          =================================================== */}
           {activeMenu === "Appointments" && (
             <section className="module-page">
               <PageHeader
@@ -2350,9 +2230,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              REFERRALS
-          =================================================== */}
           {activeMenu === "Referrals" && (
             <section className="module-page">
               <PageHeader
@@ -2409,9 +2286,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              MEDICINES
-          =================================================== */}
           {activeMenu === "Medicines" && (
             <section className="module-page">
               <PageHeader
@@ -2485,9 +2359,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              DIAGNOSTICS
-          =================================================== */}
           {activeMenu === "Diagnostics" && (
             <section className="module-page">
               <PageHeader
@@ -2610,9 +2481,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              FOLLOW UP
-          =================================================== */}
           {activeMenu === "Follow-up" && (
             <section className="module-page">
               <PageHeader
@@ -2659,9 +2527,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              CARE JOURNEY
-          =================================================== */}
           {activeMenu === "Care Journey" && (
             <section className="module-page">
               <PageHeader
@@ -2768,9 +2633,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              MY PROFILE
-          =================================================== */}
           {activeMenu === "My Profile" && (
             <section className="module-page">
               <PageHeader
@@ -2906,9 +2768,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              SETTINGS
-          =================================================== */}
           {activeMenu === "Settings" && (
             <section className="module-page">
               <PageHeader
@@ -3020,9 +2879,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              NOTIFICATIONS
-          =================================================== */}
           {activeMenu === "Notifications" && (
             <section className="module-page">
               <PageHeader
@@ -3080,9 +2936,6 @@ function PatientDashboard() {
             </section>
           )}
 
-          {/* ===================================================
-              FALLBACK HELP
-          =================================================== */}
           {activeMenu === "Help & Support" && (
             <section className="module-page">
               <PageHeader
@@ -3114,9 +2967,6 @@ function PatientDashboard() {
         </main>
       </div>
 
-      {/* =======================================================
-          TELEHEALTH CALL MODAL
-      ======================================================= */}
       {activeCallAppointment && (
         <CallModal 
           roomId={activeCallAppointment._id || activeCallAppointment.id || "swasthya-telehealth-room"} 
@@ -3126,9 +2976,6 @@ function PatientDashboard() {
         />
       )}
 
-      {/* =======================================================
-          CHANGE PASSWORD MODAL
-      ======================================================= */}
       {showPasswordModal && (
         <div
           className="facility-modal-overlay"
@@ -3198,9 +3045,6 @@ function PatientDashboard() {
         </div>
       )}
 
-      {/* =======================================================
-          FACILITY MODAL
-      ======================================================= */}
       {selectedFacility && (
         <div
           className="facility-modal-overlay"
