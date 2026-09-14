@@ -26,16 +26,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        navigateFallback: null,
         runtimeCaching: [
           {
-            // Cache OpenStreetMap map tiles for offline map views
             urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'osm-map-tiles',
               expiration: {
                 maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // Cache tiles for 30 days
+                maxAgeSeconds: 60 * 60 * 24 * 30
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -50,15 +50,14 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5003', // <-- Change from 5000 to 5003
+        target: 'http://localhost:5003',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:5003', // <-- Change from 5000 to 5003
+        target: 'http://localhost:5003',
         changeOrigin: true,
         ws: true,
       }
     }
   }
-
 });
