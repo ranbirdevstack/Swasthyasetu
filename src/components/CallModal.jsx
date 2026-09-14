@@ -162,15 +162,10 @@ export default function CallModal({ roomId, userId, callType = "video", onClose 
     setActiveMode(mode);
   };
 
-  const handleEndCall = async () => {
-<<<<<<< HEAD
-    try {
-      await api.post("/api/consultations/end-call", {
-=======
+  
 const handleEndCall = async () => {
     try {
-      await api.post("/consultations/end-call", { // Fixed double /api path
->>>>>>> d6f0b76 (prototype)
+      await api.post("/consultations/end-call", {
         roomId,
         patientId: userId,
         doctorId: userId,
@@ -185,13 +180,11 @@ const handleEndCall = async () => {
     if (onClose) onClose();
   };
 
-<<<<<<< HEAD
-=======
+
     stopMediaTracks();
     if (onClose) onClose();
   };
 
->>>>>>> d6f0b76 (prototype)
   return (
     <div style={styles.overlay}>
       <div style={styles.container}>
@@ -274,7 +267,7 @@ const handleEndCall = async () => {
       </div>
     </div>
   );
-}
+
 
 const styles = {
   overlay: {
