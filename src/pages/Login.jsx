@@ -137,10 +137,12 @@ function Login({ onLogin }) {
     const cleanPassword = password.trim();
 
     // 1. Check in local Mock Directory (matching either email or phone)
-    const matchedUser = mockUsers.find(
-      (u) => u.email.toLowerCase() === cleanIdentifier || u.phone === cleanIdentifier
-    );
-
+   const matchedUser = mockUsers.find(
+  (u) =>
+    (u.email.toLowerCase() === cleanIdentifier ||
+      u.phone === cleanIdentifier) &&
+    u.role === role
+);
     if (!matchedUser) {
       // Try online API if available
       try {
