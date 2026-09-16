@@ -588,6 +588,8 @@ function DoctorDashboard() {
       <PageHeader
         title={`Welcome, ${doctorProfile.name}`}
         subtitle="Here's what's happening with your patients and consultations today."
+        showBack={false}
+        onBack={handleBack}
         action={
           <button
             className="doctor-primary-btn"
@@ -749,6 +751,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Appointments"
         subtitle="Manage today's and upcoming patient appointments."
+        showBack={true}
+        onBack={handleBack}
       />
 
       <div className="doctor-filter-bar">
@@ -843,6 +847,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Patient Records"
         subtitle="Search and manage your assigned patient history."
+        showBack={true}
+        onBack={handleBack}
       />
 
       <div className="doctor-filter-bar">
@@ -880,6 +886,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Consultations"
         subtitle="Conduct and manage digital patient consultations."
+        showBack={true}
+        onBack={handleBack}
       />
 
       {!consultationPatient ? (
@@ -965,6 +973,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Referrals"
         subtitle="Track, route, and manage patient referrals across healthcare facilities."
+        showBack={true}
+        onBack={handleBack}
         action={
           <button
             className="doctor-primary-btn"
@@ -1061,6 +1071,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Prescriptions"
         subtitle="Create and manage digital prescriptions for patients."
+        showBack={true}
+        onBack={handleBack}
         action={
           <button
             className="doctor-primary-btn"
@@ -1087,6 +1099,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Follow-ups"
         subtitle="Monitor patients who need continued care and scheduled reviews."
+        showBack={true}
+        onBack={handleBack}
       />
       <div className="doctor-panel full-panel">
         <div className="panel-header">
@@ -1124,6 +1138,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Analytics"
         subtitle="Overview of your patient care and consultation activity."
+        showBack={true}
+        onBack={handleBack}
       />
       <div className="analytics-grid">
         <AnalyticsCard title="Patients This Month" value={patients.length.toString()} text="Live Data" />
@@ -1137,6 +1153,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Doctor Profile"
         subtitle="Manage your professional information, consultation hours and credentials."
+        showBack={true}
+        onBack={handleBack}
         action={
           <button className="doctor-primary-btn" onClick={openEditProfile}>
             ✎ Edit Profile
@@ -1240,6 +1258,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Settings"
         subtitle="Manage your account security, notifications and availability preferences."
+        showBack={true}
+        onBack={handleBack}
       />
       <div className="doctor-panel settings-content">
         <section className="settings-section">
@@ -1265,6 +1285,8 @@ function DoctorDashboard() {
       <PageHeader
         title="Notifications"
         subtitle="Stay updated with patient activity and clinical alerts."
+        showBack={true}
+        onBack={handleBack}
       />
       <div className="doctor-panel full-panel">
         <div className="panel-header">
@@ -1665,13 +1687,25 @@ function DoctorDashboard() {
   );
 }
 
-function PageHeader({ title, subtitle, action }) {
+function PageHeader({ title, subtitle, showBack = true, onBack, action }) {
   return (
     <div className="doctor-page-header">
-      <div>
-        <span className="doctor-page-eyebrow">SWASTHYASETU · DOCTOR PORTAL</span>
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {showBack && onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="doctor-secondary-btn"
+            style={{ padding: "6px 12px", fontSize: "13px", cursor: "pointer" }}
+          >
+            ← Go Back
+          </button>
+        )}
+        <div>
+          <span className="doctor-page-eyebrow">SWASTHYASETU · DOCTOR PORTAL</span>
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+        </div>
       </div>
       {action && <div>{action}</div>}
     </div>
