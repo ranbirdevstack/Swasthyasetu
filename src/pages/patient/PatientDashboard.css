@@ -3458,3 +3458,22 @@ body {
     margin-top: 0.5rem;
   }
 }
+/* Full-height patient navigation: scroll from top to bottom */
+.patient-scroll-navigation{overflow-y:auto;max-height:calc(100vh - 245px);padding-right:4px;scrollbar-width:thin}
+.patient-scroll-navigation::-webkit-scrollbar{width:6px}.patient-scroll-navigation::-webkit-scrollbar-thumb{background:#b8d9d0;border-radius:10px}
+.followup-tele-actions{margin:14px 0 8px}.followup-tele-actions .primary-action{width:100%}
+.document-viewer-overlay{position:fixed;inset:0;background:rgba(15,35,45,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5000}.document-viewer{width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(0,0,0,.25)}.document-viewer-header{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px;border-bottom:1px solid #e8edf2}.document-viewer-header span{font-size:10px;letter-spacing:1px;font-weight:800;color:#087f8c}.document-viewer-header h2{margin:5px 0 0;color:#17344c}.document-viewer-header button{border:0;background:#f3f6f7;border-radius:50%;width:34px;height:34px;font-size:22px;cursor:pointer}.dummy-report,.dummy-document{margin:24px;padding:24px;border:1px solid #dbe5e8;border-radius:12px;background:#fbfdfd}.report-brand{font-weight:900;color:#087f8c;letter-spacing:.4px;margin-bottom:14px}.dummy-report table{width:100%;border-collapse:collapse;margin:18px 0}.dummy-report th,.dummy-report td{border:1px solid #d9e2e5;padding:10px;text-align:left}.dummy-report th{background:#f1f7f7}.report-note{font-size:12px;color:#687b84}.dummy-document hr{border:0;border-top:1px solid #dce6e8;margin:20px 0}.document-signature{margin-top:30px;font-size:12px;color:#6b7e87;font-style:italic}
+
+/* Scroll the complete sidebar, including bottom actions */
+.patient-sidebar{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}.patient-sidebar::-webkit-scrollbar{width:6px}.patient-sidebar::-webkit-scrollbar-thumb{background:#b8d9d0;border-radius:10px}.patient-scroll-navigation{max-height:none;overflow:visible}
+
+/* Appointment capacity indicator */
+.appointment-capacity-card { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--color-border, #e5e7eb); border-radius: 14px; background: var(--color-bg-subtle, #f8fafc); display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.appointment-capacity-card.full { border-color:#ef4444; background:#fff5f5; }
+.capacity-copy strong { display:block; font-size:15px; }
+.capacity-copy span { color:var(--color-text-muted,#64748b); font-size:13px; }
+.capacity-meter { min-width:230px; }
+.capacity-meter-top { display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:7px; }
+.capacity-bar { height:9px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+.capacity-bar span { display:block; height:100%; border-radius:999px; background:var(--color-teal,#087f8c); }
+.appointment-capacity-card.full .capacity-bar span { background:#ef4444; }

@@ -286,17 +286,7 @@ function Topbar({
             <span>{isOnline ? "Low-connectivity ready" : "Offline mode"}</span>
           </div>
 
-          <button
-            type="button"
-            className="language-button"
-            onClick={onLanguageChange}
-            title="Change Language"
-            aria-label="Change Language"
-          >
-            <span>अ</span>
-            <span>/</span>
-            <span>A</span>
-          </button>
+
 
           <button
             type="button"

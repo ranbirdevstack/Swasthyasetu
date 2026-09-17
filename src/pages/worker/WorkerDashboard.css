@@ -6383,3 +6383,10 @@ a {
     font-size: 23px !important;
   }
 }
+/* Keep patient record modal/sidebar layout stable while showing limited details */
+.worker-modal .patient-history-box{max-height:none;overflow:visible}
+.worker-sidebar{overflow-y:auto;scrollbar-width:thin}.worker-sidebar::-webkit-scrollbar{width:6px}.worker-sidebar::-webkit-scrollbar-thumb{background:#b8d9d0;border-radius:10px}
+
+/* Patient-details modal should not visually hide the desktop sidebar */
+@media (min-width: 861px){.worker-modal-overlay{left:270px}.worker-modal{z-index:510}}
+@media (max-width: 860px){.worker-modal-overlay{left:0}}

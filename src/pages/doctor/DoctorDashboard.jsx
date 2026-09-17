@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient.js";
 import FacilityMap from "../../components/FacilityMap.jsx";
 import CallModal from "../../components/CallModal.jsx";
+import { getPatientRecord, addDoctorConsultation } from "../../api/medicalRecords.js";
 import "./DoctorDashboard.css";
 
 function DoctorDashboard() {
@@ -14,6 +15,7 @@ function DoctorDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [showProfile, setShowProfile] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -21,6 +23,8 @@ function DoctorDashboard() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [consultationPatient, setConsultationPatient] = useState(null);
   const [activeCallAppointment, setActiveCallAppointment] = useState(null);
+  const [consultationForm, setConsultationForm] = useState({ diagnosis: "", medicine: "", diagnostics: "", notes: "" });
+  const [patientRecord, setPatientRecord] = useState(null);
 
   const [showPrescription, setShowPrescription] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
@@ -285,7 +289,6 @@ function DoctorDashboard() {
     onlineConsultation: true,
     showAvailability: true,
     twoFactor: false,
-    language: "English",
   });
 
   const showToast = (message) => {
@@ -469,6 +472,24 @@ function DoctorDashboard() {
     showToast("Settings saved successfully.");
   };
 
+  const handleAcceptAppointment = (appointmentId) => {
+    setAppointments((current) => {
+      const target = current.find((a) => (a._id || a.id) === appointmentId);
+      if (!target) return current;
+      const conflict = current.some((a) =>
+        (a._id || a.id) !== appointmentId &&
+        a.time === target.time &&
+        a.status === "Confirmed"
+      );
+      if (conflict) {
+        showToast("This time slot is already confirmed for another patient.");
+        return current;
+      }
+      showToast(`Appointment accepted for ${target.patient}.`);
+      return current.map((a) => (a._id || a.id) === appointmentId ? { ...a, status: "Confirmed" } : a);
+    });
+  };
+
   const handleStartConsultation = (patient) => {
     if (activeMenu !== "Consultations") {
       setMenuHistory((prev) => {
@@ -477,6 +498,23 @@ function DoctorDashboard() {
       });
     }
     setConsultationPatient(patient);
+    const existingRecord = getPatientRecord(patient.name);
+    const syncedRecord = {
+      ...existingRecord,
+      patient: {
+        ...existingRecord.patient,
+        name: patient.name,
+        age: patient.age,
+        gender: patient.gender,
+        phone: patient.phone || existingRecord.patient.phone
+      }
+    };
+    localStorage.setItem("swasthyasetu_medical_records", JSON.stringify({
+      ...JSON.parse(localStorage.getItem("swasthyasetu_medical_records") || "{}"),
+      [patient.name]: syncedRecord
+    }));
+    setPatientRecord(syncedRecord);
+    setConsultationForm({ diagnosis: "", medicine: "", diagnostics: "", notes: "" });
     setActiveMenu("Consultations");
     setMobileMenuOpen(false);
     showToast(`Consultation started for ${patient.name}`);
@@ -493,6 +531,16 @@ function DoctorDashboard() {
       )
     );
 
+    const date = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const updated = addDoctorConsultation(consultationPatient.name, {
+      date,
+      doctor: doctorProfile.name,
+      diagnosis: consultationForm.diagnosis || "Clinical assessment completed",
+      medicine: consultationForm.medicine || "No medicine added",
+      diagnostics: consultationForm.diagnostics || "No diagnostic order",
+      notes: consultationForm.notes || "No additional notes"
+    });
+    setPatientRecord(updated);
     showToast("Consultation completed successfully.");
     setConsultationPatient(null);
   };
@@ -799,6 +847,15 @@ function DoctorDashboard() {
               <StatusBadge status={appointment.status} />
 
               <div className="appointment-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                {(appointment.status === "Pending" || appointment.status === "Waiting") && (
+                  <button
+                    className="small-primary-btn"
+                    onClick={() => handleAcceptAppointment(appointment._id || appointment.id)}
+                  >
+                    ✓ Accept Appointment
+                  </button>
+                )}
+
                 {appointment.type === "Video Consultation" && appointment.status !== "Completed" && (
                   <button
                     className="doctor-primary-btn"
@@ -934,9 +991,7 @@ function DoctorDashboard() {
                 End Session
               </button>
             </div>
-          </div>
-
-          <div className="consultation-grid">
+          </div>          <div className="consultation-grid">
             <div className="doctor-panel">
               <h3>Patient Information</h3>
               <div className="info-grid">
@@ -945,13 +1000,28 @@ function DoctorDashboard() {
                 <InfoItem label="Risk Level" value={consultationPatient.risk} />
                 <InfoItem label="Contact" value={consultationPatient.phone} />
               </div>
+              {patientRecord?.vitals && (
+                <div className="patient-history-box" style={{ marginTop: "18px" }}>
+                  <h4>Latest Health Worker Vitals</h4>
+                  <div><span>BP</span><strong>{patientRecord.vitals.bloodPressure}</strong></div>
+                  <div><span>Blood Sugar</span><strong>{patientRecord.vitals.bloodSugar}</strong></div>
+                  <div><span>Temperature</span><strong>{patientRecord.vitals.temperature}</strong></div>
+                  <div><span>Pulse</span><strong>{patientRecord.vitals.pulse}</strong></div>
+                </div>
+              )}
             </div>
 
             <div className="doctor-panel">
               <h3>Clinical Assessment</h3>
               <div className="medical-note">
-                <label>Diagnosis & Notes</label>
-                <textarea placeholder="Enter diagnosis and treatment plan..." />
+                <label>Diagnosis</label>
+                <textarea value={consultationForm.diagnosis} onChange={(e) => setConsultationForm({ ...consultationForm, diagnosis: e.target.value })} placeholder="Enter diagnosis..." />
+                <label>Medicine</label>
+                <textarea value={consultationForm.medicine} onChange={(e) => setConsultationForm({ ...consultationForm, medicine: e.target.value })} placeholder="Enter prescribed medicines..." />
+                <label>Diagnostics</label>
+                <textarea value={consultationForm.diagnostics} onChange={(e) => setConsultationForm({ ...consultationForm, diagnostics: e.target.value })} placeholder="Enter tests / diagnostic advice..." />
+                <label>Clinical Notes</label>
+                <textarea value={consultationForm.notes} onChange={(e) => setConsultationForm({ ...consultationForm, notes: e.target.value })} placeholder="Enter clinical notes..." />
               </div>
               <div className="consultation-actions">
                 <button
@@ -1316,7 +1386,6 @@ function DoctorDashboard() {
       case "Appointments": return renderAppointments();
       case "Patients": return renderPatients();
       case "Consultations": return renderConsultations();
-      case "Medical Records": return renderPatients();
       case "Referrals": return renderReferrals();
       case "Prescriptions": return renderPrescriptions();
       case "Follow-ups": return renderFollowUps();
@@ -1330,7 +1399,7 @@ function DoctorDashboard() {
 
   const menuItems = [
     { section: "MAIN", items: [{ label: "Dashboard", icon: "⌂" }, { label: "Appointments", icon: "▣" }, { label: "Patients", icon: "♙" }, { label: "Consultations", icon: "◉" }] },
-    { section: "PATIENT CARE", items: [{ label: "Medical Records", icon: "▤" }, { label: "Referrals", icon: "↗" }, { label: "Prescriptions", icon: "＋" }, { label: "Follow-ups", icon: "↻" }] },
+    { section: "PATIENT CARE", items: [{ label: "Referrals", icon: "↗" }, { label: "Prescriptions", icon: "＋" }, { label: "Follow-ups", icon: "↻" }] },
     { section: "INSIGHTS", items: [{ label: "Analytics", icon: "▥" }] },
   ];
 
@@ -1394,6 +1463,24 @@ function DoctorDashboard() {
           </button>
           <div className="doctor-breadcrumb">
             <span>Doctor Portal</span><b>/</b><strong>{activeMenu}</strong>
+          </div>
+          <div className="doctor-top-profile-wrap">
+            <button className="doctor-top-profile" onClick={() => setProfileMenuOpen((v) => !v)} title="Open profile" aria-expanded={profileMenuOpen}>
+              <ProfileAvatar />
+              <span><strong>{doctorProfile.name}</strong><small>{doctorProfile.specialization}</small></span>
+              <b className="profile-chevron">⌄</b>
+            </button>
+            {profileMenuOpen && (
+              <div className="doctor-profile-popover">
+                <div className="doctor-profile-popover-head">
+                  <ProfileAvatar />
+                  <div><strong>{doctorProfile.name}</strong><span>{doctorProfile.specialization}</span></div>
+                </div>
+                <button onClick={() => { setProfileMenuOpen(false); handleMenu("Profile"); setEditProfile(false); }}>👤 Profile</button>
+                <button onClick={() => { setProfileMenuOpen(false); setEditProfile(true); handleMenu("Profile"); }}>✎ Edit Profile</button>
+                <button className="profile-logout" onClick={() => { setProfileMenuOpen(false); handleLogout(); }}>↪ Logout</button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -1491,21 +1578,33 @@ function DoctorDashboard() {
             <InfoItem label="Risk Level" value={selectedPatient.risk} />
           </div>
 
-          <div className="patient-history-box">
-            <h4>Recent Medical History</h4>
-            <div>
-              <span>28 Aug 2026</span>
-              <strong>Routine consultation</strong>
-            </div>
-            <div>
-              <span>20 Aug 2026</span>
-              <strong>Follow-up visit</strong>
-            </div>
-            <div>
-              <span>12 Aug 2026</span>
-              <strong>Diagnostic report reviewed</strong>
-            </div>
-          </div>
+          {(() => {
+            const record = getPatientRecord(selectedPatient.name);
+            return (
+              <>
+                <div className="patient-history-box">
+                  <h4>Complete Medical History</h4>
+                  {record.history.map((item, index) => (
+                    <div key={`${item.date}-${index}`}>
+                      <span>{item.date} · {item.type}</span>
+                      <strong>{item.title}</strong>
+                      <small>{item.detail}</small>
+                    </div>
+                  ))}
+                </div>
+                <div className="patient-history-box">
+                  <h4>Previous Medical Documents</h4>
+                  {record.documents.map((doc) => (
+                    <div key={doc.id}>
+                      <span>{doc.date} · {doc.type}</span>
+                      <strong>{doc.name}</strong>
+                      <small>{doc.status} · Doctor/Patient access</small>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
 
           <div className="modal-actions">
             <button

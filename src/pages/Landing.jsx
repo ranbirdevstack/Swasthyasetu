@@ -7,8 +7,10 @@ import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import Button from "../components/Button.jsx";
 import SectionHeading from "../components/SectionHeading.jsx";
+import { useLanguage } from "../i18n/LanguageProvider.jsx";
 
 function Landing() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   // Get Started → Role Selection

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import Button from "./Button.jsx";
+import { LanguageSwitcher, useLanguage } from "../i18n/LanguageProvider.jsx";
 
 function Navbar({ onGetStarted }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useLanguage();
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -74,6 +76,12 @@ function Navbar({ onGetStarted }) {
           >
             Feedback
           </a>
+
+          <div className="navbar-language-control" aria-label="Language selection">
+            <span className="navbar-language-icon">🌐</span>
+            <span className="navbar-language-label">{t("Language")}</span>
+            <LanguageSwitcher />
+          </div>
 
           <Button
             variant="outline"

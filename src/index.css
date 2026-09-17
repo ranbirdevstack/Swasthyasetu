@@ -433,6 +433,29 @@ ol {
   margin-left: 4px;
 }
 
+/* =========================================================
+   LANDING PAGE LANGUAGE SELECTOR
+   ========================================================= */
+
+.site-navbar .navbar-language-control {
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 9px;
+}
+
+.site-navbar .navbar-language-icon {
+  font-size: 13px;
+}
+
+.site-navbar .navbar-language-label {
+  display:none;
+}
+
+.site-navbar .navbar-language-control .global-language-switcher select {
+  padding: 0;
+  min-width: 65px;
+  font-size: 10px;
+}
 
 /* =========================================================
    MOBILE MENU BUTTON
@@ -565,6 +588,19 @@ ol {
   .site-navbar .navbar-menu .ss-btn {
     margin-top: 6px;
     margin-left: 0;
+  }
+
+  .site-navbar .navbar-language-control {
+    width: 100%;
+    justify-content: space-between;
+    box-sizing: border-box;
+    margin: 6px 0 2px;
+    padding: 10px 12px;
+  }
+
+  .site-navbar .navbar-language-control .global-language-switcher select {
+    min-width: 105px;
+    font-size: 13px;
   }
 
   .landing-page .hero-section {
@@ -4985,3 +5021,6 @@ ol {
   background: var(--success-light) !important;
   color: var(--success) !important;
 }
+
+/* Global multilingual switcher */
+.global-language-switcher{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #dfe8eb;border-radius:10px;background:#fff;color:#087f8c;font-size:12px;font-weight:700;z-index:1200}.global-language-switcher span{font-weight:800}.global-language-switcher select{border:0;background:transparent;color:#405461;font-weight:700;outline:none;cursor:pointer;font-size:12px}

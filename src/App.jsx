@@ -19,6 +19,7 @@ import CallModal from "./components/CallModal.jsx";
 // Security & Offline Engine
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { initOfflineSyncListener } from "./api/syncQueue.js";
+import { LanguageProvider } from "./i18n/LanguageProvider.jsx";
 
 function App() {
   // Read authenticated session or role from local state/storage
@@ -44,6 +45,7 @@ function App() {
   }, []);
 
   return (
+    <LanguageProvider>
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
@@ -107,6 +109,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </LanguageProvider>
   );
 }
 

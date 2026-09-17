@@ -4,7 +4,12 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient.js";
 import FacilityMap from "../../components/FacilityMap.jsx";
 import CallModal from "../../components/CallModal.jsx";
+import { getPatientRecord } from "../../api/medicalRecords.js";
 import "./PatientDashboard.css";
+
+function InfoItem({ label, value }) {
+  return <div><span className="info-label">{label}</span><strong>{value || "—"}</strong></div>;
+}
 
 function PatientDashboard() {
   const navigate = useNavigate();
@@ -13,6 +18,11 @@ function PatientDashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [menuHistory, setMenuHistory] = useState([]);
+  const [medicalRecord, setMedicalRecord] = useState(() => getPatientRecord("Shivam"));
+
+  useEffect(() => {
+    setMedicalRecord(getPatientRecord("Shivam"));
+  }, [activeMenu]);
 
   const [facilitySearch, setFacilitySearch] = useState("");
   const [facilityFilter, setFacilityFilter] = useState("All Facilities");
@@ -65,6 +75,8 @@ function PatientDashboard() {
 
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [activeCallAppointment, setActiveCallAppointment] = useState(null);
+  const [viewDocument, setViewDocument] = useState(null);
+  const [viewReport, setViewReport] = useState(null);
 
   const [referrals] = useState([
     {
@@ -331,6 +343,7 @@ function PatientDashboard() {
     { name: "Diagnostics", icon: "⌕" },
     { name: "Follow-up", icon: "♥" },
     { name: "Care Journey", icon: "◈" },
+    { name: "Medical History", icon: "▣" },
   ];
 
   const facilities = [
@@ -802,13 +815,29 @@ function PatientDashboard() {
     );
   };
 
+
+  const APPOINTMENT_CAPACITY = 5;
+  const getTodayISO = () => new Date().toISOString().slice(0, 10);
+  const getBookingCount = (date) => {
+    const localCount = appointments.filter((a) => a.date === date && a.status !== "Cancelled").length;
+    try {
+      const registry = JSON.parse(localStorage.getItem("swasthya_appointment_bookings") || "[]");
+      return Math.max(localCount, registry.filter((a) => a.date === date && a.status !== "Cancelled").length);
+    } catch { return localCount; }
+  };
+  const selectedCapacityDate = appointmentForm.date || getTodayISO();
+  const bookedSeats = getBookingCount(selectedCapacityDate);
+  const seatsLeft = Math.max(0, APPOINTMENT_CAPACITY - bookedSeats);
+  const isAppointmentFull = seatsLeft === 0;
+
   const bookAppointment = async () => {
     if (
+      isAppointmentFull ||
       !appointmentForm.facility ||
       !appointmentForm.date ||
       !appointmentForm.time
     ) {
-      alert("Please select facility, date and time.");
+      alert(isAppointmentFull ? "This date is fully booked. Please choose another date." : "Please select facility, date and time.");
       return;
     }
 
@@ -829,7 +858,17 @@ function PatientDashboard() {
       console.warn("Appointment booked locally (offline mode)");
     }
 
-    setAppointments((current) => [newAppointment, ...current]);
+    // Keep a shared local booking registry for the prototype so different roles/tabs
+    // can see daily capacity and prevent overbooking. Doctor acceptance still confirms the slot.
+    let registry = [];
+    try { registry = JSON.parse(localStorage.getItem("swasthya_appointment_bookings") || "[]"); } catch {}
+    const hasSameSlot = registry.some((item) =>
+      item.date === newAppointment.date && item.time === newAppointment.time && item.status !== "Cancelled"
+    );
+    const appointmentWithStatus = { ...newAppointment, status: hasSameSlot ? "Pending" : "Confirmed" };
+    registry.push(appointmentWithStatus);
+    localStorage.setItem("swasthya_appointment_bookings", JSON.stringify(registry));
+    setAppointments((current) => [appointmentWithStatus, ...current]);
     setAppointmentForm({
       facility: "",
       type: "General Consultation",
@@ -972,7 +1011,7 @@ function PatientDashboard() {
           </div>
         </div>
 
-        <nav className="dashboard-navigation">
+        <nav className="dashboard-navigation patient-scroll-navigation">
           <div className="navigation-label">MAIN MENU</div>
 
           {menuItems.map((item) => (
@@ -2162,6 +2201,17 @@ function PatientDashboard() {
                     </div>
                   </div>
 
+                  <div className={`appointment-capacity-card ${isAppointmentFull ? "full" : ""}`}>
+                    <div className="capacity-copy">
+                      <strong>Today's Appointment Capacity</strong>
+                      <span>{appointmentForm.date ? `Selected date: ${appointmentForm.date}` : "Today"} · {isAppointmentFull ? "All seats are full" : `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} left`}</span>
+                    </div>
+                    <div className="capacity-meter">
+                      <div className="capacity-meter-top"><span>{Math.min(bookedSeats, APPOINTMENT_CAPACITY)} / {APPOINTMENT_CAPACITY} booked</span><span>{isAppointmentFull ? "FULL" : `${seatsLeft} left`}</span></div>
+                      <div className="capacity-bar"><span style={{ width: `${Math.min(100, (bookedSeats / APPOINTMENT_CAPACITY) * 100)}%` }} /></div>
+                    </div>
+                  </div>
+
                   <div className="form-actions">
                     <button
                       className="secondary-action"
@@ -2467,9 +2517,7 @@ function PatientDashboard() {
                       {test.report === "Available" && (
                         <button
                           className="secondary-action"
-                          onClick={() =>
-                            alert(`Report opened for ${test.name}`)
-                          }
+                          onClick={() => setViewReport(test)}
                         >
                           View Report
                         </button>
@@ -2477,6 +2525,79 @@ function PatientDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {activeMenu === "Medical History" && (
+            <section className="module-page">
+              <PageHeader
+                eyebrow="PRIVATE MEDICAL RECORD"
+                title="Medical History"
+                description="Your complete medical history and documents. This record is visible to you and your consulting doctors."
+                icon="▣"
+              />
+
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <div>
+                    <span>PERSONAL HEALTH RECORD</span>
+                    <h3>Patient information</h3>
+                  </div>
+                </div>
+                <div className="modal-info-grid">
+                  <InfoItem label="Name" value={medicalRecord.patient.name} />
+                  <InfoItem label="Age" value={`${medicalRecord.patient.age} years`} />
+                  <InfoItem label="Gender" value={medicalRecord.patient.gender} />
+                  <InfoItem label="Blood Group" value={medicalRecord.patient.bloodGroup} />
+                  <InfoItem label="Village" value={medicalRecord.patient.village} />
+                  <InfoItem label="Phone" value={medicalRecord.patient.phone} />
+                </div>
+              </div>
+
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <div><span>VITALS</span><h3>Latest health worker measurements</h3></div>
+                </div>
+                <div className="modal-info-grid">
+                  <InfoItem label="Blood Pressure" value={medicalRecord.vitals.bloodPressure} />
+                  <InfoItem label="Blood Sugar" value={medicalRecord.vitals.bloodSugar} />
+                  <InfoItem label="Temperature" value={medicalRecord.vitals.temperature} />
+                  <InfoItem label="Pulse" value={medicalRecord.vitals.pulse} />
+                  <InfoItem label="Recorded On" value={medicalRecord.vitals.date} />
+                </div>
+              </div>
+
+              <div className="dashboard-card">
+                <div className="card-header"><div><span>HISTORY</span><h3>Complete medical history</h3></div></div>
+                <div className="patient-history-box">
+                  {medicalRecord.history.map((item, index) => (
+                    <div key={`${item.date}-${index}`}>
+                      <span>{item.date} · {item.type}</span>
+                      <strong>{item.title}</strong>
+                      <small>{item.detail}</small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="dashboard-card">
+                <div className="card-header"><div><span>DOCUMENTS</span><h3>Previous medical documents</h3></div></div>
+                <div className="diagnostic-list">
+                  {medicalRecord.documents.map((doc) => (
+                    <div className="diagnostic-list-card" key={doc.id}>
+                      <div className="diagnostic-icon-large">▤</div>
+                      <div className="diagnostic-main">
+                        <span className="card-kicker">{doc.type}</span>
+                        <h3>{doc.name}</h3>
+                        <p>{doc.date} · {doc.status}</p>
+                      </div>
+                      <div className="diagnostic-side">
+                        <button className="secondary-action" onClick={() => setViewDocument(doc)}>View Document</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
           )}
@@ -2506,6 +2627,15 @@ function PatientDashboard() {
                       <span>▣ {followUp.date}</span>
                       <span>◷ {followUp.time}</span>
                       <span>⌖ {followUp.facility}</span>
+                    </div>
+
+                    <div className="followup-tele-actions">
+                      <button
+                        className="primary-action"
+                        onClick={() => setActiveCallAppointment({ ...followUp, id: `followup-${followUp.id}`, type: "Video Consultation" })}
+                      >
+                        🎥 Teleconsultation
+                      </button>
                     </div>
 
                     <div className="reminder-row">
@@ -2849,32 +2979,6 @@ function PatientDashboard() {
                     </div>
                   ))}
                 </div>
-
-                <div className="dashboard-card settings-card">
-                  <div className="card-header">
-                    <div>
-                      <span>LANGUAGE</span>
-                      <h3>Portal language</h3>
-                    </div>
-                  </div>
-
-                  <div className="setting-language">
-                    <label>Preferred language</label>
-                    <select
-                      value={settings.language}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          language: e.target.value,
-                        })
-                      }
-                    >
-                      <option>English</option>
-                      <option>Hindi</option>
-                      <option>Hinglish</option>
-                    </select>
-                  </div>
-                </div>
               </div>
             </section>
           )}
@@ -2966,6 +3070,45 @@ function PatientDashboard() {
           )}
         </main>
       </div>
+
+      {viewReport && (
+        <div className="document-viewer-overlay" onClick={() => setViewReport(null)}>
+          <div className="document-viewer" onClick={(e) => e.stopPropagation()}>
+            <div className="document-viewer-header">
+              <div><span>DIAGNOSTIC REPORT</span><h2>{viewReport.name}</h2></div>
+              <button onClick={() => setViewReport(null)}>×</button>
+            </div>
+            <div className="dummy-report">
+              <div className="report-brand">SwasthyaSetu Diagnostic Centre</div>
+              <h3>{viewReport.name} — LAB REPORT</h3>
+              <p><strong>Patient:</strong> Shivam &nbsp; <strong>Date:</strong> {viewReport.date}</p>
+              <table><thead><tr><th>Parameter</th><th>Result</th><th>Reference Range</th></tr></thead>
+                <tbody>
+                  <tr><td>Glucose (Fasting)</td><td>132 mg/dL</td><td>70–100 mg/dL</td></tr>
+                  <tr><td>Hemoglobin</td><td>13.8 g/dL</td><td>13–17 g/dL</td></tr>
+                  <tr><td>RBC Count</td><td>4.7 million/µL</td><td>4.5–5.9 million/µL</td></tr>
+                  <tr><td>WBC Count</td><td>7,200 /µL</td><td>4,000–11,000 /µL</td></tr>
+                </tbody></table>
+              <p className="report-note">Demo report for prototype demonstration. Final interpretation should be made by a qualified clinician.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewDocument && (
+        <div className="document-viewer-overlay" onClick={() => setViewDocument(null)}>
+          <div className="document-viewer" onClick={(e) => e.stopPropagation()}>
+            <div className="document-viewer-header"><div><span>{viewDocument.type}</span><h2>{viewDocument.name}</h2></div><button onClick={() => setViewDocument(null)}>×</button></div>
+            <div className="dummy-document">
+              <div className="report-brand">SWASTHYASETU • PATIENT DOCUMENT</div>
+              <h3>{viewDocument.name}</h3>
+              <p><strong>Patient:</strong> Shivam</p><p><strong>Document ID:</strong> {viewDocument.id}</p><p><strong>Date:</strong> {viewDocument.date}</p>
+              <hr/><p>This is a sample medical document included in the prototype. It demonstrates secure patient/doctor document viewing and record continuity.</p>
+              <div className="document-signature">Digitally recorded • SwasthyaSetu Demo</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeCallAppointment && (
         <CallModal 

@@ -26,3 +26,9 @@
     ),
     #f7fbff;
 }
+/* Landing page global language selector */
+.landing-language-control { position:fixed; top:86px; right:28px; z-index:50; display:flex; align-items:center; gap:9px; padding:8px 11px; border:1px solid rgba(8,127,140,.18); border-radius:12px; background:rgba(255,255,255,.96); box-shadow:0 8px 24px rgba(15,23,42,.08); font-size:13px; font-weight:700; }
+.landing-language-control .global-language-switcher { display:flex; align-items:center; gap:5px; }
+.landing-language-control .global-language-switcher span { display:none; }
+.landing-language-control select { border:0; background:transparent; font-weight:700; outline:none; cursor:pointer; }
+@media (max-width:700px){ .landing-language-control{top:76px;right:12px;} }

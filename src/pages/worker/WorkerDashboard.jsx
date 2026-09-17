@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient.js";
 import FacilityMap from "../../components/FacilityMap.jsx";
+import { addHealthWorkerVitals, getPatientRecord } from "../../api/medicalRecords.js";
 import "./WorkerDashboard.css";
 
 function WorkerDashboard() {
@@ -1086,10 +1087,11 @@ function WorkerDashboard() {
             setShowTriage(false);
             setSelectedPatient(null);
           }}
-          onSave={() => {
+          onSave={(data) => {
+            addHealthWorkerVitals(data.patient.name, data.vitals);
             setShowTriage(false);
             setSelectedPatient(null);
-            showToast("Triage assessment saved successfully.");
+            showToast("Triage assessment saved successfully. Vitals are now available to the consulting doctor.");
           }}
         />
       )}
@@ -2086,19 +2088,19 @@ function WorkerDashboard() {
           </div>
 
           <div className="patient-history-box">
-            <h4>Recent Patient Activity</h4>
-            <div>
-              <span>30 Aug 2026</span>
-              <strong>Initial health assessment</strong>
-            </div>
-            <div>
-              <span>28 Aug 2026</span>
-              <strong>Follow-up completed</strong>
-            </div>
-            <div>
-              <span>22 Aug 2026</span>
-              <strong>Doctor consultation completed</strong>
-            </div>
+            <h4>Necessary Care Details</h4>
+            {(() => {
+              const record = getPatientRecord(selectedPatient.name);
+              return <>
+                <div><span>Assigned Doctor</span><strong>{selectedPatient.assignedDoctor}</strong></div>
+                <div><span>Current Risk</span><strong>{selectedPatient.risk}</strong></div>
+                <div><span>Blood Pressure</span><strong>{record.vitals?.bloodPressure || "—"}</strong></div>
+                <div><span>Blood Sugar</span><strong>{record.vitals?.bloodSugar || "—"}</strong></div>
+                <div><span>Temperature</span><strong>{record.vitals?.temperature || "—"}</strong></div>
+                <div><span>Pulse</span><strong>{record.vitals?.pulse || "—"}</strong></div>
+                <div><span>Medical History / Documents</span><strong>Restricted to Doctor & Patient</strong></div>
+              </>;
+            })()}
           </div>
 
           <div className="modal-actions">
@@ -2407,6 +2409,12 @@ function TriageRow({ item, onReview, onComplete }) {
 
 function TriageWorkspace({ patient, patients, onClose, onSave }) {
   const activePatient = patient || patients[0];
+  const [vitals, setVitals] = useState({ temperature: "", bloodPressure: "", bloodSugar: "", pulse: "" });
+  const [symptoms, setSymptoms] = useState("");
+  const [priority, setPriority] = useState("");
+  const [assessment, setAssessment] = useState("");
+  const [action, setAction] = useState("");
+  const [notes, setNotes] = useState("");
 
   return (
     <div className="triage-workspace">
@@ -2441,28 +2449,25 @@ function TriageWorkspace({ patient, patients, onClose, onSave }) {
 
           <div className="form-group triage-field">
             <label>Chief Symptoms</label>
-            <textarea
-              defaultValue=""
-              placeholder="Enter patient symptoms..."
-            />
+            <textarea value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="Enter patient symptoms..." />
           </div>
 
           <div className="triage-vitals-grid">
             <div className="form-group">
               <label>Temperature</label>
-              <input placeholder="e.g. 98.6 °F" />
+              <input value={vitals.temperature} onChange={(e) => setVitals({ ...vitals, temperature: e.target.value })} placeholder="e.g. 98.6 °F" />
             </div>
             <div className="form-group">
               <label>Blood Pressure</label>
-              <input placeholder="e.g. 120/80" />
+              <input value={vitals.bloodPressure} onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })} placeholder="e.g. 120/80" />
             </div>
             <div className="form-group">
               <label>Blood Sugar</label>
-              <input placeholder="e.g. 140 mg/dL" />
+              <input value={vitals.bloodSugar} onChange={(e) => setVitals({ ...vitals, bloodSugar: e.target.value })} placeholder="e.g. 140 mg/dL" />
             </div>
             <div className="form-group">
               <label>Pulse</label>
-              <input placeholder="e.g. 78 bpm" />
+              <input value={vitals.pulse} onChange={(e) => setVitals({ ...vitals, pulse: e.target.value })} placeholder="e.g. 78 bpm" />
             </div>
           </div>
         </div>
@@ -2482,7 +2487,7 @@ function TriageWorkspace({ patient, patients, onClose, onSave }) {
 
           <div className="form-group triage-field">
             <label>Initial Assessment</label>
-            <textarea placeholder="Enter initial clinical observations..." />
+            <textarea value={assessment} onChange={(e) => setAssessment(e.target.value)} placeholder="Enter initial clinical observations..." />
           </div>
 
           <div className="form-group triage-field">
@@ -2498,14 +2503,14 @@ function TriageWorkspace({ patient, patients, onClose, onSave }) {
 
           <div className="form-group triage-field">
             <label>Worker Notes</label>
-            <textarea placeholder="Add additional notes..." />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add additional notes..." />
           </div>
 
           <div className="triage-workspace-actions">
             <button className="worker-secondary-btn" onClick={onClose}>
               Cancel
             </button>
-            <button className="worker-primary-btn" onClick={onSave}>
+            <button className="worker-primary-btn" onClick={() => onSave({ vitals, symptoms, priority, assessment, action, notes, patient: activePatient })}>
               ✓ Save Triage
             </button>
           </div>
