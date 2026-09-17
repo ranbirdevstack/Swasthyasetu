@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import apiClient from "../api/axiosClient.js";
 import ForgotPasswordModal from "../components/ForgotPasswordModal.jsx";
 
-// Initial mock database for offline authentication & testing
+// =========================================================
+// DEFAULT DEMO USERS
+// =========================================================
 const DEFAULT_MOCK_USERS = [
   {
     email: "shivam@example.com",
@@ -39,10 +41,9 @@ function Login({ onLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* =========================
-      GET ROLE FROM URL
-  ========================= */
-
+  // =========================================================
+  // GET ROLE
+  // =========================================================
   const params = new URLSearchParams(location.search);
 
   const rawRole =
@@ -50,13 +51,11 @@ function Login({ onLogin }) {
     localStorage.getItem("swasthya_role") ||
     "patient";
 
-  // Keep role naming consistent throughout the application
   const role = rawRole === "health-worker" ? "worker" : rawRole;
 
-  /* =========================
-      LOGIN & MODAL STATES
-  ========================= */
-
+  // =========================================================
+  // STATES
+  // =========================================================
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [identifier, setIdentifier] = useState("");
@@ -65,35 +64,109 @@ function Login({ onLogin }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
-  /* =========================
-      MOCK USER STORE
-  ========================= */
-
+  // =========================================================
+  // LOAD USERS
+  //
+  // IMPORTANT:
+  // We combine:
+  // 1. Default demo users
+  // 2. Previously saved mock users
+  // 3. Users saved during registration
+  //
+  // This fixes the old-registration login problem.
+  // =========================================================
   const [mockUsers, setMockUsers] = useState(() => {
     try {
-      const saved = localStorage.getItem("swasthya_mock_users");
+      const usersMap = new Map();
 
-      if (!saved) {
-        return DEFAULT_MOCK_USERS;
+      // ---------------------------------------------
+      // 1. Add default demo users
+      // ---------------------------------------------
+      DEFAULT_MOCK_USERS.forEach((user) => {
+        const key = `${user.email?.toLowerCase()}-${user.role}`;
+        usersMap.set(key, user);
+      });
+
+      // ---------------------------------------------
+      // 2. Add users from mock storage
+      // ---------------------------------------------
+      const savedMockUsers = localStorage.getItem("swasthya_mock_users");
+
+      if (savedMockUsers) {
+        const parsedMockUsers = JSON.parse(savedMockUsers);
+
+        if (Array.isArray(parsedMockUsers)) {
+          parsedMockUsers.forEach((user) => {
+            if (!user?.email) return;
+
+            const normalizedUser = {
+              ...user,
+              email: user.email.trim().toLowerCase(),
+              phone: user.phone
+                ? String(user.phone).replace(/\D/g, "")
+                : "",
+              role:
+                user.role === "health-worker"
+                  ? "worker"
+                  : user.role,
+            };
+
+            const key = `${normalizedUser.email}-${normalizedUser.role}`;
+            usersMap.set(key, normalizedUser);
+          });
+        }
       }
 
-      const parsed = JSON.parse(saved);
+      // ---------------------------------------------
+      // 3. Add users from registration storage
+      // ---------------------------------------------
+      const savedRegistrations = localStorage.getItem(
+        "swasthyasetu_registrations"
+      );
 
-      // Prevent broken localStorage data from crashing login
-      if (!Array.isArray(parsed)) {
-        return DEFAULT_MOCK_USERS;
+      if (savedRegistrations) {
+        const registrations = JSON.parse(savedRegistrations);
+
+        if (Array.isArray(registrations)) {
+          registrations.forEach((registration) => {
+            if (!registration?.email) return;
+
+            const normalizedRegistration = {
+              ...registration,
+              email: registration.email.trim().toLowerCase(),
+              phone: registration.phone
+                ? String(registration.phone).replace(/\D/g, "")
+                : "",
+              role:
+                registration.role === "health-worker"
+                  ? "worker"
+                  : registration.role,
+            };
+
+            const key = `${normalizedRegistration.email}-${normalizedRegistration.role}`;
+
+            usersMap.set(key, {
+              email: normalizedRegistration.email,
+              phone: normalizedRegistration.phone,
+              password: normalizedRegistration.password,
+              role: normalizedRegistration.role,
+              name: normalizedRegistration.name,
+              status: normalizedRegistration.status,
+            });
+          });
+        }
       }
 
-      return parsed;
-    } catch {
+      return Array.from(usersMap.values());
+    } catch (error) {
+      console.error("Failed to load local users:", error);
       return DEFAULT_MOCK_USERS;
     }
   });
 
-  /* =========================
-      ROLE LABELS
-  ========================= */
-
+  // =========================================================
+  // ROLE LABELS
+  // =========================================================
   const roleNames = {
     patient: "Patient",
     worker: "Health Worker",
@@ -104,10 +177,9 @@ function Login({ onLogin }) {
 
   const currentRole = roleNames[role] || "Healthcare User";
 
-  /* =========================
-      ROUTING MAP
-  ========================= */
-
+  // =========================================================
+  // ROUTING MAP
+  // =========================================================
   const redirectMap = {
     patient: "/patient/dashboard",
     worker: "/worker-dashboard",
@@ -115,44 +187,28 @@ function Login({ onLogin }) {
     admin: "/admin-dashboard",
   };
 
-  /* =========================
-      PASSWORD RESET HANDLER
-  ========================= */
-
+  // =========================================================
+  // PASSWORD RESET
+  // =========================================================
   const handlePasswordResetSuccess = (newPassword) => {
     const cleanId = identifier.trim().toLowerCase();
 
-    if (!cleanId) {
-      setErrorMsg("Please enter your email or mobile number first.");
-      return;
-    }
+    const updatedUsers = mockUsers.map((user) => {
+      const emailMatch =
+        user.email?.toLowerCase() === cleanId;
 
-    const updatedUsers = mockUsers.map((u) => {
-      const userEmail = String(u.email || "").toLowerCase();
-      const userPhone = String(u.phone || "");
+      const phoneMatch =
+        user.phone === cleanId;
 
-      const matchesUser =
-        u.role === role &&
-        (userEmail === cleanId || userPhone === cleanId);
-
-      if (matchesUser) {
+      if (emailMatch || phoneMatch) {
         return {
-          ...u,
+          ...user,
           password: newPassword,
         };
       }
 
-      return u;
+      return user;
     });
-
-    const userWasUpdated = updatedUsers.some((u, index) => {
-      return u.password !== mockUsers[index]?.password;
-    });
-
-    if (!userWasUpdated) {
-      setErrorMsg("Account not found for the selected role.");
-      return;
-    }
 
     setMockUsers(updatedUsers);
 
@@ -161,25 +217,60 @@ function Login({ onLogin }) {
       JSON.stringify(updatedUsers)
     );
 
+    // Also update registration storage
+    try {
+      const savedRegistrations = localStorage.getItem(
+        "swasthyasetu_registrations"
+      );
+
+      if (savedRegistrations) {
+        const registrations = JSON.parse(savedRegistrations);
+
+        const updatedRegistrations = registrations.map((registration) => {
+          const emailMatch =
+            registration.email?.toLowerCase() === cleanId;
+
+          const phoneMatch =
+            registration.phone === cleanId;
+
+          if (emailMatch || phoneMatch) {
+            return {
+              ...registration,
+              password: newPassword,
+            };
+          }
+
+          return registration;
+        });
+
+        localStorage.setItem(
+          "swasthyasetu_registrations",
+          JSON.stringify(updatedRegistrations)
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "Could not update registration password:",
+        error
+      );
+    }
+
     setPassword(newPassword);
     setErrorMsg("");
-    setIsForgotModalOpen(false);
   };
 
-  /* =========================
-      REGISTER NAVIGATION
-  ========================= */
-
+  // =========================================================
+  // REGISTER
+  // =========================================================
   const handleRegister = () => {
     navigate(`/registration?role=${role}`);
   };
 
-  /* =========================
-      LOGIN SUBMISSION
-  ========================= */
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // =========================================================
+  // LOGIN
+  // =========================================================
+  const handleLogin = async (event) => {
+    event.preventDefault();
 
     if (!role) {
       alert("Please select a role first.");
@@ -191,137 +282,223 @@ function Login({ onLogin }) {
     setErrorMsg("");
 
     const cleanIdentifier = identifier.trim().toLowerCase();
-    const cleanPassword = password.trim();
 
-    if (!cleanIdentifier || !cleanPassword) {
-      setErrorMsg("Please enter your email/mobile number and password.");
-      setLoading(false);
+    // IMPORTANT:
+    // Do NOT trim the password.
+    // Passwords must be checked exactly as registered.
+    const cleanPassword = password;
+
+    // =======================================================
+    // 1. FIND LOCAL USER
+    //
+    // Check BOTH email and phone.
+    // Check the selected role too.
+    // =======================================================
+    const matchedUser = mockUsers.find((user) => {
+      const emailMatch =
+        user.email?.trim().toLowerCase() === cleanIdentifier;
+
+      const phoneMatch =
+        user.phone &&
+        String(user.phone).replace(/\D/g, "") ===
+          cleanIdentifier.replace(/\D/g, "");
+
+      const roleMatch =
+        user.role === role ||
+        (role === "worker" && user.role === "health-worker");
+
+      return (emailMatch || phoneMatch) && roleMatch;
+    });
+
+    // =======================================================
+    // 2. IF LOCAL USER EXISTS → CHECK PASSWORD
+    // =======================================================
+    if (matchedUser) {
+      if (matchedUser.password !== cleanPassword) {
+        setErrorMsg("Incorrect username or password");
+        setLoading(false);
+        return;
+      }
+
+      // =====================================================
+      // SUCCESSFUL LOCAL LOGIN
+      // =====================================================
+      const sessionUser = {
+        email: matchedUser.email,
+        phone: matchedUser.phone,
+        name: matchedUser.name,
+        role: matchedUser.role,
+        token: "demo-jwt-token-" + Date.now(),
+      };
+
+      localStorage.setItem(
+        "token",
+        sessionUser.token
+      );
+
+      localStorage.setItem(
+        "swasthya_user",
+        JSON.stringify(sessionUser)
+      );
+
+      localStorage.setItem(
+        "swasthya_role",
+        sessionUser.role
+      );
+
+      localStorage.setItem(
+        "userRole",
+        sessionUser.role
+      );
+
+      localStorage.setItem(
+        "userName",
+        sessionUser.name
+      );
+
+      // Remember login if selected
+      if (rememberMe) {
+        localStorage.setItem(
+          "swasthya_remembered_identifier",
+          cleanIdentifier
+        );
+      } else {
+        localStorage.removeItem(
+          "swasthya_remembered_identifier"
+        );
+      }
+
+      if (onLogin) {
+        onLogin(sessionUser);
+      }
+
+      window.dispatchEvent(
+        new Event("swasthya_role_updated")
+      );
+
+      setTimeout(() => {
+        setLoading(false);
+        navigate(
+          redirectMap[sessionUser.role] ||
+            redirectMap[role] ||
+            "/roles"
+        );
+      }, 350);
+
       return;
     }
 
+    // =======================================================
+    // 3. USER NOT FOUND LOCALLY
+    //
+    // Try backend API.
+    // =======================================================
     try {
-      /* =========================
-          1. CHECK LOCAL MOCK USERS
-      ========================= */
-
-      const matchedUser = mockUsers.find((u) => {
-        const userEmail = String(u.email || "").toLowerCase();
-        const userPhone = String(u.phone || "");
-
-        return (
-          u.role === role &&
-          (userEmail === cleanIdentifier ||
-            userPhone === cleanIdentifier)
-        );
-      });
-
-      /* =========================
-          2. LOCAL USER FOUND
-      ========================= */
-
-      if (matchedUser) {
-        if (matchedUser.password !== cleanPassword) {
-          setErrorMsg("Incorrect username or password.");
-          return;
+      const response = await apiClient.post(
+        "/auth/login",
+        {
+          identifier: cleanIdentifier,
+          password: cleanPassword,
+          role,
         }
-
-        const sessionUser = {
-          email: matchedUser.email,
-          phone: matchedUser.phone,
-          name: matchedUser.name,
-          role: matchedUser.role,
-          token: "demo-jwt-token-" + Date.now(),
-        };
-
-        localStorage.setItem("token", sessionUser.token);
-        localStorage.setItem(
-          "swasthya_user",
-          JSON.stringify(sessionUser)
-        );
-        localStorage.setItem("swasthya_role", sessionUser.role);
-        localStorage.setItem("userRole", sessionUser.role);
-        localStorage.setItem("userName", sessionUser.name);
-
-        if (onLogin) {
-          onLogin(sessionUser);
-        }
-
-        window.dispatchEvent(new Event("swasthya_role_updated"));
-
-        navigate(redirectMap[sessionUser.role] || "/roles");
-
-        return;
-      }
-
-      /* =========================
-          3. TRY BACKEND API
-      ========================= */
-
-      const response = await apiClient.post("/auth/login", {
-        identifier: cleanIdentifier,
-        password: cleanPassword,
-        role,
-      });
+      );
 
       const { token, user } = response.data || {};
 
-      if (!token || !user) {
-        setErrorMsg("Invalid login response from server.");
-        return;
+      if (token) {
+        localStorage.setItem(
+          "token",
+          token
+        );
       }
 
-      const loggedInRole =
-        user.role === "health-worker" ? "worker" : user.role;
+      const sessionUser = {
+        ...(user || {}),
+        role: user?.role || role,
+        email:
+          user?.email ||
+          (cleanIdentifier.includes("@")
+            ? cleanIdentifier
+            : ""),
+        phone:
+          user?.phone ||
+          (!cleanIdentifier.includes("@")
+            ? cleanIdentifier
+            : ""),
+        name:
+          user?.name ||
+          cleanIdentifier,
+      };
 
-      // Prevent a backend account from entering another role dashboard
-      if (loggedInRole !== role) {
-        setErrorMsg("This account does not belong to the selected role.");
-        return;
-      }
-
-      localStorage.setItem("token", token);
       localStorage.setItem(
         "swasthya_user",
-        JSON.stringify(user)
+        JSON.stringify(sessionUser)
       );
-      localStorage.setItem("swasthya_role", loggedInRole);
-      localStorage.setItem("userRole", loggedInRole);
-      localStorage.setItem("userName", user.name || "");
 
-      if (onLogin) {
-        onLogin({
-          ...user,
-          role: loggedInRole,
-        });
+      localStorage.setItem(
+        "swasthya_role",
+        sessionUser.role
+      );
+
+      localStorage.setItem(
+        "userRole",
+        sessionUser.role
+      );
+
+      localStorage.setItem(
+        "userName",
+        sessionUser.name
+      );
+
+      if (rememberMe) {
+        localStorage.setItem(
+          "swasthya_remembered_identifier",
+          cleanIdentifier
+        );
       }
 
-      window.dispatchEvent(new Event("swasthya_role_updated"));
+      if (onLogin) {
+        onLogin(sessionUser);
+      }
 
-      navigate(redirectMap[loggedInRole] || "/roles");
-    } catch (err) {
-      console.error("Login error:", err);
+      window.dispatchEvent(
+        new Event("swasthya_role_updated")
+      );
 
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        "Incorrect username or password.";
+      setLoading(false);
 
-      setErrorMsg(message);
-    } finally {
+      navigate(
+        redirectMap[sessionUser.role] ||
+          redirectMap[role] ||
+          "/roles"
+      );
+
+      return;
+    } catch (error) {
+      console.error("Login error:", error);
+
+      setErrorMsg(
+        "Incorrect username or password"
+      );
+
       setLoading(false);
     }
   };
 
+  // =========================================================
+  // UI
+  // =========================================================
   return (
     <div className="login-page">
+
       {/* =====================================================
           LEFT SECTION
       ===================================================== */}
-
       <section className="login-left">
         <div className="login-left-overlay"></div>
 
         <div className="login-left-content">
+
           <button
             className="change-role-btn"
             onClick={() => navigate("/roles")}
@@ -330,11 +507,15 @@ function Login({ onLogin }) {
           </button>
 
           <div className="login-brand">
-            <div className="login-brand-icon">+</div>
+            <div className="login-brand-icon">
+              +
+            </div>
+
             <span>SwasthyaSetu</span>
           </div>
 
           <div className="login-introduction">
+
             <span className="login-small-label">
               SMART RURAL HEALTHCARE
             </span>
@@ -346,27 +527,36 @@ function Login({ onLogin }) {
             </h1>
 
             <p>
-              Connecting patients, healthcare workers, doctors and
-              healthcare facilities through one intelligent care
-              continuity platform.
+              Connecting patients, healthcare workers,
+              doctors and healthcare facilities through
+              one intelligent care continuity platform.
             </p>
+
           </div>
 
           <div className="login-highlights">
+
             <div className="highlight-item">
               <div>✓</div>
-              <span>Connected Healthcare Network</span>
+              <span>
+                Connected Healthcare Network
+              </span>
             </div>
 
             <div className="highlight-item">
               <div>✓</div>
-              <span>Smart Facility Recommendation</span>
+              <span>
+                Smart Facility Recommendation
+              </span>
             </div>
 
             <div className="highlight-item">
               <div>✓</div>
-              <span>Continuous Care & Follow-up</span>
+              <span>
+                Continuous Care & Follow-up
+              </span>
             </div>
+
           </div>
         </div>
       </section>
@@ -374,25 +564,36 @@ function Login({ onLogin }) {
       {/* =====================================================
           RIGHT SECTION
       ===================================================== */}
-
       <section className="login-right">
+
         <div className="login-card">
+
           <div className="mobile-brand">
-            <div className="login-brand-icon">+</div>
+            <div className="login-brand-icon">
+              +
+            </div>
+
             <span>SwasthyaSetu</span>
           </div>
 
           <div className="login-header">
-            <span className="selected-role">{currentRole}</span>
+
+            <span className="selected-role">
+              {currentRole}
+            </span>
 
             <h2>Welcome Back</h2>
 
             <p>
-              Sign in to continue to your SwasthyaSetu account.
+              Sign in to continue to your
+              SwasthyaSetu account.
             </p>
+
           </div>
 
           <form onSubmit={handleLogin}>
+
+            {/* ERROR MESSAGE */}
             {errorMsg && (
               <div
                 style={{
@@ -410,59 +611,71 @@ function Login({ onLogin }) {
               </div>
             )}
 
-            {/* EMAIL / IDENTIFIER */}
-
+            {/* EMAIL / PHONE */}
             <div className="input-group">
+
               <label htmlFor="email">
                 Email or Mobile Number
               </label>
 
               <div className="input-box">
-                <span className="field-icon">✉</span>
+
+                <span className="field-icon">
+                  ✉
+                </span>
 
                 <input
                   id="email"
                   type="text"
                   value={identifier}
-                  onChange={(e) => {
-                    setIdentifier(e.target.value);
-                    setErrorMsg("");
-                  }}
+                  onChange={(event) =>
+                    setIdentifier(event.target.value)
+                  }
                   placeholder="Enter email or mobile number"
                   autoComplete="username"
                   required
                 />
+
               </div>
             </div>
 
             {/* PASSWORD */}
-
             <div className="input-group">
+
               <div className="password-heading">
-                <label htmlFor="password">Password</label>
+
+                <label htmlFor="password">
+                  Password
+                </label>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setErrorMsg("");
-                    setIsForgotModalOpen(true);
-                  }}
+                  onClick={() =>
+                    setIsForgotModalOpen(true)
+                  }
                 >
                   Forgot Password?
                 </button>
+
               </div>
 
               <div className="input-box">
-                <span className="field-icon">🔒</span>
+
+                <span className="field-icon">
+                  🔒
+                </span>
 
                 <input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setErrorMsg("");
-                  }}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   required
@@ -472,44 +685,59 @@ function Login({ onLogin }) {
                   type="button"
                   className="show-password"
                   onClick={() =>
-                    setShowPassword((current) => !current)
+                    setShowPassword(
+                      !showPassword
+                    )
                   }
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword
+                    ? "Hide"
+                    : "Show"}
                 </button>
+
               </div>
             </div>
 
             {/* REMEMBER ME */}
-
             <label className="remember-me">
+
               <input
                 type="checkbox"
                 checked={rememberMe}
-                onChange={(e) =>
-                  setRememberMe(e.target.checked)
+                onChange={(event) =>
+                  setRememberMe(
+                    event.target.checked
+                  )
                 }
               />
 
-              <span>Remember me</span>
+              <span>
+                Remember me
+              </span>
+
             </label>
 
-            {/* SIGN IN BUTTON */}
-
+            {/* SIGN IN */}
             <button
               type="submit"
               className="login-button"
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading
+                ? "Signing in..."
+                : "Sign In"}
+
               <span>→</span>
             </button>
+
           </form>
 
-          {/* REGISTER YOURSELF */}
-
+          {/* REGISTER */}
           <div className="login-register-section">
-            <p>Don't have an account?</p>
+
+            <p>
+              Don't have an account?
+            </p>
 
             <button
               type="button"
@@ -518,6 +746,7 @@ function Login({ onLogin }) {
             >
               Register Yourself
             </button>
+
           </div>
 
           <div className="login-divider">
@@ -526,32 +755,48 @@ function Login({ onLogin }) {
 
           <button
             className="different-role-btn"
-            onClick={() => navigate("/roles")}
+            onClick={() =>
+              navigate("/roles")
+            }
           >
             Continue with a different role
           </button>
 
           <div className="security-message">
-            🔐 Your healthcare information is protected with secure
-            access controls.
+            🔐 Your healthcare information is
+            protected with secure access controls.
           </div>
+
         </div>
 
         <div className="login-footer">
-          <span>© 2026 SwasthyaSetu</span>
+
           <span>
-            Smart Rural Healthcare Access & Care Continuity
+            © 2026 SwasthyaSetu
           </span>
+
+          <span>
+            Smart Rural Healthcare Access & Care
+            Continuity
+          </span>
+
         </div>
+
       </section>
 
-      {/* SELF-SERVICE PASSWORD RECOVERY MODAL */}
-
+      {/* =====================================================
+          FORGOT PASSWORD MODAL
+      ===================================================== */}
       <ForgotPasswordModal
         isOpen={isForgotModalOpen}
-        onClose={() => setIsForgotModalOpen(false)}
-        onPasswordResetSuccess={handlePasswordResetSuccess}
+        onClose={() =>
+          setIsForgotModalOpen(false)
+        }
+        onPasswordResetSuccess={
+          handlePasswordResetSuccess
+        }
       />
+
     </div>
   );
 }
